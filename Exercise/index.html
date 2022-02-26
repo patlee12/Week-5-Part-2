@@ -1,15 +1,230 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title>Horizontal Stacked Bar Chart</title>
+    <title>Line Chart</title>
     <script src="../libs/d3/d3.min.js"></script>
 
 </head>
-<body>
-<div style="width: 80%"></div>
-<script>
 
-</script>
+<body>
+    <div style="width: 100%"></div>
+
+    <h3>
+        Line Chart
+    </h3>
+    <div id="canvas" width="100%">
+        <svg width="800" height="600"></svg>
+    </div>
+    </div>
+
+
+    <script>
+        d3.csv("data_sample.csv").then(function (data) {
+            function create_table(data, columns) {
+                var table = d3.select("body").append("table")
+                f_row = table.append("thead"),
+                    tbody = table.append("tbody");
+                //Add first row
+                f_row.append("tr")
+                    .selectAll("th")
+                    .data(columns)
+                    .enter()
+                    .append("th")
+                    .text(function (column) { return column; });
+
+                //Create row
+                var rows = tbody.selectAll("tr")
+                    .data(data)
+                    .enter()
+                    .append("tr");
+
+                //Add value for each cell
+                let row_array = [];
+                let count = 0;
+                var cells = rows.selectAll("td")
+                    .data(function (row) {
+                        return columns.map(function (column) {
+                            return { column: column, value: row[column] };
+                        });
+                    })
+                    .enter()
+                    .append("td")
+                    .html(function (d) {
+                        count += 1;
+                        if (d.column === 'ActualCost') {
+                            let actual_cost = Number(row_array[count - 4]) + Number(row_array[count - 3]) + Number(row_array[count - 2]);
+                            row_array.push(actual_cost);
+                            d.value = actual_cost;
+                            return actual_cost;
+                        }
+                        if (d.column === 'SoldPrice') {
+                            let sold_price = parseFloat(Number(row_array[count - 6] * 1.1).toFixed(2));
+                            row_array.push(sold_price);
+                            d.value = sold_price;
+                            return sold_price;
+                        }
+                        if (d.column === 'Margin of Profit') {
+                            let margin = Number(row_array[count - 2] - row_array[count - 3]).toFixed(2);
+                            row_array.push(margin);
+                            d.value = margin;
+                            return margin;
+                        }
+                        row_array.push(d.value);
+
+
+                        return d.value;
+                    });
+                return table;
+            }
+            //Create table
+            let columns = ['date', 'EstimatedCost', 'RawMaterial', 'Workmanship', 'YearlyStorage', 'ActualCost', 'SoldPrice', 'Margin of Profit'];
+            var dataTable = create_table(data, columns);
+
+            //Get specific column in table
+            function getColumn(column) {
+                const table_rows = d3.selectAll("tr").selectAll("td").data();
+                let column_array = []
+                d3.map(table_rows, (row) => {
+                    if (row.column == column) {
+                        column_array.push(column == 'date' ? row.value : Number(row.value));
+                    }
+                });
+                return column_array;
+            }
+            let dates = getColumn('date');
+            let estimated_cost = getColumn('EstimatedCost');
+            let actual_cost = getColumn('ActualCost');
+            let margin_profit = getColumn('Margin of Profit');
+
+            console.log(dates);
+            const est_min = d3.min(estimated_cost);
+            const est_max = d3.max(estimated_cost);
+            const est_min_max = [est_min, est_max];
+            console.log(est_min);
+            console.log(est_max);
+
+
+
+
+            function plot(xdata, ydata, margin, width, height, color, svg) {
+                var data = []; // start empty, add each element one at a time
+                for (var i = 0; i < xdata.length; i++) {
+                    data.push({ x: xdata[i], y: ydata[i] });
+                }
+
+                console.log("xy is:", data); // shows the data structure
+
+                var xscale = d3.scaleLinear()
+                    .domain(d3.extent(data, function (d) { return d.x; })) //use just the x part
+                    .range([margin.left, width + margin.left])
+
+                var yscale = d3.scaleLinear()
+                    .domain(d3.extent(estimated_cost, function (d) { return d; })) // use just the y part
+                    .range([height + margin.top, margin.top])
+
+                var slice = d3.line()
+                    .x(function (d) { return xscale(d.x); })
+                    .y(function (d) { return yscale(d.y); })
+
+                svg.append("path")
+                    .attr("class", "line")
+                    .attr("d", slice(data))
+                    .style("fill", "none")
+                    .style("stroke", color)
+                    .style("stroke-width", 2);
+
+
+
+
+            }
+
+            var margin = { top: 28, right: 10, bottom: 10, left: 50 };
+            width = 800;
+            height = 400;
+
+            var svg = d3.select("svg");
+            //set x axis    
+            var xdata = d3.range(0, 21);
+            var scale = d3.scaleLinear()
+                .domain([d3.min(xdata), d3.max(xdata)])
+                .range([margin.left, width]);
+            var x_axis = d3.axisBottom()
+                .scale(scale);
+
+            svg.append("g")
+                .call(x_axis);
+
+            //set y axis
+
+            var scale = d3.scaleLinear()
+                .domain([d3.min(margin_profit), d3.max(estimated_cost)])
+                .range([600 - margin.bottom - margin.top, 0]);
+
+            var y_axis = d3.axisLeft()
+                .scale(scale);
+
+            svg.append("g")
+                .attr("transform", "translate(50, 10)")
+                .call(y_axis);
+
+            plot(xdata, estimated_cost, margin, width, height, 'red', svg);
+            plot(xdata, actual_cost, margin, width, height, 'blue', svg);
+            plot(xdata, margin_profit, margin, width, height, 'green', svg);
+
+            //add legend and axis
+            const legend = svg.append('g')
+                .attr("class", "legend")
+                .attr("transform", "translate(0,50)")
+                .selectAll()
+                .data([{ name: "EstimatedCost", class: "EstimatedCost" },
+                { name: "ActualCost", class: "ActualCost" },
+                { name: "Margin of Profit", class: "MarginOfProfit" }])
+                .enter()
+                .append("g")
+                .attr("class", d => d.class)
+                .attr("transform", (d, i) => {
+                    return `translate(${width / 1.5},${i * 20})`
+                });
+
+            legend.append("rect")
+                .attr('width', "10px")
+                .attr('height', "10px");
+            legend.append("text")
+                .text(d => d.name)
+                .attr("dx", "20px")
+                .attr("dy", "10px");
+
+
+
+        });
+    </script>
 </body>
+
 </html>
+<style>
+    table,
+    th,
+    tr,
+    td {
+        border: 2px solid;
+        padding: 4px;
+    }
+
+    .LegendTempMovingAvg {
+        fill: green;
+    }
+
+    .EstimatedCost {
+        fill: red;
+    }
+
+    .ActualCost {
+        fill: blue;
+    }
+
+    .MarginOfProfit {
+        fill: green;
+    }
+</style>
