@@ -98,30 +98,17 @@
             let actual_cost = getColumn('ActualCost');
             let margin_profit = getColumn('Margin of Profit');
 
-            console.log(dates);
-            const est_min = d3.min(estimated_cost);
-            const est_max = d3.max(estimated_cost);
-            const est_min_max = [est_min, est_max];
-            console.log(est_min);
-            console.log(est_max);
-
-
-
-
             function plot(xdata, ydata, margin, width, height, color, svg) {
-                var data = []; // start empty, add each element one at a time
+                var data = [];
                 for (var i = 0; i < xdata.length; i++) {
                     data.push({ x: xdata[i], y: ydata[i] });
                 }
-
-                console.log("xy is:", data); // shows the data structure
-
                 var xscale = d3.scaleLinear()
-                    .domain(d3.extent(data, function (d) { return d.x; })) //use just the x part
+                    .domain(d3.extent(data, function (d) { return d.x; }))
                     .range([margin.left, width + margin.left])
 
                 var yscale = d3.scaleLinear()
-                    .domain(d3.extent(estimated_cost, function (d) { return d; })) // use just the y part
+                    .domain(d3.extent(estimated_cost, function (d) { return d; }))//estimated cost is largest scale
                     .range([height + margin.top, margin.top])
 
                 var slice = d3.line()
@@ -134,10 +121,6 @@
                     .style("fill", "none")
                     .style("stroke", color)
                     .style("stroke-width", 2);
-
-
-
-
             }
 
             var margin = { top: 28, right: 10, bottom: 10, left: 50 };
